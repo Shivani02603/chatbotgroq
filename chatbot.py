@@ -12,8 +12,17 @@ import os
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
-# Initialize Groq client
-groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+# Lazy load Groq client
+groq_client = None
+
+def get_groq_client():
+    global groq_client
+    if groq_client is None:
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise ValueError("GROQ_API_KEY environment variable is not set")
+        groq_client = Groq(api_key=api_key)
+    return groq_client
 
 # System prompt for the chatbot
 SYSTEM_PROMPT = """You are a helpful customer service assistant for a tech company.
@@ -43,7 +52,7 @@ def chat():
             return jsonify({"error": "Message is required"}), 400
         
         # Call Groq API
-        chat_completion = groq_client.chat.completions.create(
+        chat_completion = get_groq_client().chat.completions.create(
             messages=[
                 {
                     "role": "system",
